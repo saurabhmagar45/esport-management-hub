@@ -1,0 +1,25 @@
+{
+  "name": "esport-hub",
+  "version": "1.0.0",
+  "description": "Complete Full-Stack Esports Tournament Management System (BGMI & Free Fire)",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix \"back end\" && npm install --prefix \"front end\"",
+    "dev:server": "npm run dev --prefix \"back end\"",
+    "dev:client": "npm run dev --prefix \"front end\"",
+    "start:server": "npm start --prefix \"back end\"",
+    "build:client": "npm run build --prefix \"front end\"",
+    "test": "npm test --prefix \"back end\""
+  },
+  "keywords": [
+    "esports",
+    "tournament-management",
+    "toornament",
+    "bgmi",
+    "free-fire",
+    "brackets",
+    "college-project"
+  ],
+  "author": "Esport Hub Engineering",
+  "license": "MIT"
+}
