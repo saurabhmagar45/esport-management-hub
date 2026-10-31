@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Esport Hub",
+    "slug": "esport-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0c14"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.esporthub.app"
+    },
+    "android": {
+      "package": "com.esporthub.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0a0c14"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "https://esport-management-hub.onrender.com/api/v1",
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
