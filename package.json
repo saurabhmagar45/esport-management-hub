@@ -8,6 +8,7 @@
     "dev:server": "npm run dev --prefix \"back end\"",
     "dev:client": "npm run dev --prefix \"front end\"",
     "start:server": "npm start --prefix \"back end\"",
+    "build": "npm run build --prefix \"front end\"",
     "build:client": "npm run build --prefix \"front end\"",
     "test": "npm test --prefix \"back end\""
   },
