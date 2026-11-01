@@ -7,6 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import {
   KeyRound,
@@ -17,39 +19,95 @@ import {
   ShieldAlert,
   ArrowLeft,
   Check,
+  Edit3,
 } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
 import { tournamentsAPI } from '../../api/tournaments';
 import { getErrorMessage } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 export const RoomCredentialsScreen = ({ route, navigation }) => {
   const { tournament } = route.params;
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [roomData, setRoomData] = useState(null);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
 
-  useEffect(() => {
-    const fetchCredentials = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const tournId = tournament._id || tournament.id;
-        const res = await tournamentsAPI.getRoomDetails(tournId);
-        if (res.data && res.data.success) {
-          setRoomData(res.data.room || res.data);
-        }
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Organizer Edit Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editRoomId, setEditRoomId] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editInstructions, setEditInstructions] = useState('');
+  const [saving, setSaving] = useState(false);
 
+  const isOrganizer = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user._id === tournament.organizer?._id ||
+      user._id === tournament.organizer ||
+      user.role === 'organizer'
+    )
+  );
+
+  const fetchCredentials = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const tournId = tournament._id || tournament.id;
+      const res = await tournamentsAPI.getRoomDetails(tournId);
+      if (res.data && res.data.success) {
+        setRoomData(res.data.room || res.data);
+      }
+    } catch (err) {
+      const msg = getErrorMessage(err);
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCredentials();
   }, [tournament]);
+
+  const handleOpenEdit = () => {
+    setEditRoomId(roomData?.roomId || '');
+    setEditPassword(roomData?.password || '');
+    setEditInstructions(roomData?.instructions || 'Join designated lobby slot. Mobile only.');
+    setModalVisible(true);
+  };
+
+  const handleSaveCredentials = async () => {
+    if (!editRoomId.trim() || !editPassword.trim()) {
+      Alert.alert('Missing Fields', 'Please enter both Room ID and Room Password.');
+      return;
+    }
+    try {
+      setSaving(true);
+      const tournId = tournament._id || tournament.id;
+      const payload = {
+        roomId: editRoomId.trim(),
+        password: editPassword.trim(),
+        instructions: editInstructions.trim(),
+      };
+      await tournamentsAPI.setRoomDetails(tournId, payload);
+      setRoomData({
+        roomId: editRoomId.trim(),
+        password: editPassword.trim(),
+        instructions: editInstructions.trim(),
+        isReleased: true,
+      });
+      setError(null);
+      setModalVisible(false);
+      Alert.alert('Success 🎉', 'Room ID and Password updated successfully.');
+    } catch (err) {
+      Alert.alert('Error', getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const copyToClipboard = (text, type) => {
     // In React Native, copy simulation / alert confirmation
@@ -80,6 +138,20 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
           <Text style={styles.tournName}>{tournament.name}</Text>
           <Text style={styles.tournGame}>{tournament.game} • Official Lobby</Text>
         </View>
+
+        {/* Organizer Quick Action Button */}
+        {isOrganizer && (
+          <TouchableOpacity
+            style={styles.organizerBtn}
+            onPress={handleOpenEdit}
+            activeOpacity={0.85}
+          >
+            <Edit3 size={16} color="#000000" />
+            <Text style={styles.organizerBtnText}>
+              {roomData?.roomId ? 'Update Room ID & Password' : '+ Add Room ID & Password'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {loading ? (
           <View style={styles.centerBox}>
@@ -169,6 +241,75 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Organizer Room Credentials Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeaderTitle}>
+              {roomData?.roomId ? 'Update Match Room Key' : 'Add Custom Room Key'}
+            </Text>
+            <Text style={styles.modalHeaderSub}>
+              Enter the custom game Room ID & Password created from {tournament.game}.
+            </Text>
+
+            <Text style={styles.fieldLabel}>Custom Room ID *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={editRoomId}
+              onChangeText={setEditRoomId}
+              placeholder="e.g. 7482910"
+              placeholderTextColor={COLORS.textMuted}
+            />
+
+            <Text style={styles.fieldLabel}>Room Password *</Text>
+            <TextInput
+              style={styles.textInput}
+              value={editPassword}
+              onChangeText={setEditPassword}
+              placeholder="e.g. BATTLE#2026"
+              placeholderTextColor={COLORS.textMuted}
+            />
+
+            <Text style={styles.fieldLabel}>Lobby Instructions</Text>
+            <TextInput
+              style={[styles.textInput, { height: 60, textAlignVertical: 'top' }]}
+              value={editInstructions}
+              onChangeText={setEditInstructions}
+              placeholder="Slot assignments, mobile rules, etc."
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setModalVisible(false)}
+                disabled={saving}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSaveCredentials}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#000000" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save & Publish</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -354,5 +495,95 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 18,
     marginBottom: 4,
+  },
+  organizerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eab308',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+    shadowColor: '#eab308',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  organizerBtnText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalHeaderTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  modalHeaderSub: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  textInput: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: COLORS.text,
+    fontSize: 13,
+    fontFamily: 'monospace',
+    marginBottom: 14,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 6,
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: COLORS.surfaceLight,
+  },
+  cancelBtnText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  saveBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#eab308',
+  },
+  saveBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

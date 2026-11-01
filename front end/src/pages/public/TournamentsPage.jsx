@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { tournamentsAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { TournamentCard } from '../../components/tournaments/TournamentCard';
 import { 
   Search, 
@@ -28,6 +29,7 @@ const GAMES = [
 ];
 
 export const TournamentsPage = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialGame = searchParams.get('game') || 'all';
 
@@ -218,12 +220,14 @@ export const TournamentsPage = () => {
             >
               Reset Filters
             </button>
-            <Link
-              to="/organizer/tournaments/create"
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition"
-            >
-              Host a Tournament
-            </Link>
+            {(user?.role === 'organizer' || user?.role === 'admin') && (
+              <Link
+                to="/organizer/tournaments/create"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-cyan-600/20 transition"
+              >
+                Host a Tournament
+              </Link>
+            )}
           </div>
         </div>
       ) : viewMode === 'grid' ? (

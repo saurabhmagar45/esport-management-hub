@@ -187,17 +187,29 @@ export const TournamentDetailScreen = ({ route, navigation }) => {
 
           {/* Room ID & Password Unlock Button */}
           <TouchableOpacity
-            style={styles.roomBox}
+            style={[
+              styles.roomBox,
+              Boolean(user?.role === 'organizer' || user?.role === 'admin') && { borderColor: '#eab308' }
+            ]}
             onPress={() => navigation.navigate('RoomCredentials', { tournament: details })}
             activeOpacity={0.85}
           >
-            <View style={styles.roomIcon}>
-              <KeyRound size={20} color={COLORS.secondary} />
+            <View style={[
+              styles.roomIcon,
+              Boolean(user?.role === 'organizer' || user?.role === 'admin') && { backgroundColor: 'rgba(234, 179, 8, 0.15)' }
+            ]}>
+              <KeyRound size={20} color={Boolean(user?.role === 'organizer' || user?.role === 'admin') ? '#eab308' : COLORS.secondary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.roomTitle}>Official Match Room Key & Password</Text>
+              <Text style={styles.roomTitle}>
+                {Boolean(user?.role === 'organizer' || user?.role === 'admin')
+                  ? 'Add / Update Room ID & Password'
+                  : 'Official Match Room Key & Password'}
+              </Text>
               <Text style={styles.roomSub}>
-                Unlocks 5 minutes before kickoff for registered participants.
+                {Boolean(user?.role === 'organizer' || user?.role === 'admin')
+                  ? 'Set or edit in-game custom room credentials for competing teams'
+                  : 'Unlocks 5 minutes before kickoff for registered participants.'}
               </Text>
             </View>
           </TouchableOpacity>
