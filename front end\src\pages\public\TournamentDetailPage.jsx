@@ -24,7 +24,10 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Award
+  Award,
+  Eye,
+  EyeOff,
+  Edit3
 } from 'lucide-react';
 
 export const TournamentDetailPage = () => {
@@ -45,6 +48,17 @@ export const TournamentDetailPage = () => {
   const [roomError, setRoomError] = useState('');
   const [copiedId, setCopiedId] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
+
+  // Organizer / Admin Room Key Add & Update Modal State
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
+  const [modalRoomId, setModalRoomId] = useState('');
+  const [modalPassword, setModalPassword] = useState('');
+  const [modalReleaseTime, setModalReleaseTime] = useState('');
+  const [modalInstructions, setModalInstructions] = useState('');
+  const [modalShowPassword, setModalShowPassword] = useState(false);
+  const [modalSaving, setModalSaving] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState(false);
 
   // Registration Modal State
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
@@ -236,6 +250,68 @@ export const TournamentDetailPage = () => {
     }
   };
 
+  const handleOpenRoomModal = () => {
+    setModalRoomId(roomData?.roomId || '');
+    setModalPassword(roomData?.password || '');
+    setModalInstructions(
+      roomData?.instructions ||
+      'Join designated lobby slot. Screen recording mandatory for team captains.'
+    );
+    if (roomData?.releaseAt) {
+      try {
+        setModalReleaseTime(new Date(roomData.releaseAt).toISOString().slice(0, 16));
+      } catch (e) {
+        setModalReleaseTime('');
+      }
+    } else if (tournament?.startDate) {
+      try {
+        const fiveMinBefore = new Date(new Date(tournament.startDate).getTime() - 5 * 60 * 1000);
+        setModalReleaseTime(fiveMinBefore.toISOString().slice(0, 16));
+      } catch (e) {
+        setModalReleaseTime('');
+      }
+    }
+    setModalError('');
+    setModalSuccess(false);
+    setRoomModalOpen(true);
+  };
+
+  const handleSaveRoomModal = async (e) => {
+    e.preventDefault();
+    if (!modalRoomId.trim() || !modalPassword.trim()) {
+      setModalError('Please provide both Room ID and Password.');
+      return;
+    }
+    setModalSaving(true);
+    setModalError('');
+    try {
+      const payload = {
+        roomId: modalRoomId.trim(),
+        password: modalPassword.trim(),
+        instructions: modalInstructions.trim() || 'Join designated lobby slot. Mobile only.',
+        releaseAt: modalReleaseTime ? new Date(modalReleaseTime) : undefined,
+      };
+      const res = await tournamentsAPI.setRoom(id, payload);
+      setRoomData({
+        roomId: modalRoomId.trim(),
+        password: modalPassword.trim(),
+        instructions: modalInstructions.trim() || 'Join designated lobby slot. Mobile only.',
+        releaseAt: res.data?.releaseAt || payload.releaseAt || new Date().toISOString(),
+        isReleased: true,
+      });
+      setRoomError('');
+      setModalSuccess(true);
+      setTimeout(() => {
+        setModalSuccess(false);
+        setRoomModalOpen(false);
+      }, 1200);
+    } catch (err) {
+      setModalError(err.response?.data?.message || err.message || 'Failed to update Room ID & Password.');
+    } finally {
+      setModalSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center text-slate-400 gap-2">
@@ -258,7 +334,14 @@ export const TournamentDetailPage = () => {
     );
   }
 
-  const isOrganizer = user && (user._id === tournament.organizer?._id || user.role === 'admin');
+  const isOrganizer = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user._id === tournament.organizer?._id ||
+      user._id === tournament.organizer ||
+      user.role === 'organizer'
+    )
+  );
   const isApproved = myRegistration?.status === 'approved';
   const isPending = myRegistration?.status === 'pending';
   const isRejected = myRegistration?.status === 'rejected';
@@ -344,13 +427,23 @@ export const TournamentDetailPage = () => {
               )}
 
               {isOrganizer && (
-                <Link
-                  to={`/organizer/tournaments/${tournament._id}/registrations`}
-                  className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-cyan-600/30"
-                >
-                  <Users className="w-4 h-4" />
-                  Review Teams ({tournament.pendingCount || 0} Pending)
-                </Link>
+                <>
+                  <button
+                    onClick={handleOpenRoomModal}
+                    className="px-4 py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-lg shadow-yellow-500/25"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    <span>{roomData?.roomId ? 'Update Room ID & Pass' : '+ Add Room ID & Pass'}</span>
+                  </button>
+
+                  <Link
+                    to={`/organizer/tournaments/${tournament._id}/registrations`}
+                    className="px-4 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-cyan-600/30"
+                  >
+                    <Users className="w-4 h-4" />
+                    Review Teams ({tournament.pendingCount || 0} Pending)
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -376,17 +469,30 @@ export const TournamentDetailPage = () => {
                 </p>
               </div>
 
-              {roomData?.isReleased ? (
-                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 self-start sm:self-auto">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Room Credentials Unlocked
-                </span>
-              ) : (
-                <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 self-start sm:self-auto">
-                  <Lock className="w-4 h-4" />
-                  Unlocks 5 Minutes Before Kickoff
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+                {roomData?.isReleased ? (
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Room Credentials Unlocked
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                    <Lock className="w-4 h-4" />
+                    Unlocks 5 Minutes Before Kickoff
+                  </span>
+                )}
+
+                {/* Organizer Quick Action Button */}
+                {isOrganizer && (
+                  <button
+                    onClick={handleOpenRoomModal}
+                    className="px-3 py-1.5 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-yellow-500/20"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>{roomData?.roomId ? 'Update ID & Pass' : '+ Add ID & Pass'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {roomData?.isReleased ? (
@@ -433,6 +539,25 @@ export const TournamentDetailPage = () => {
                     {roomData.instructions}
                   </div>
                 )}
+              </div>
+            ) : isOrganizer ? (
+              <div className="text-center py-6 space-y-3">
+                <KeyRound className="w-10 h-10 text-yellow-400 mx-auto" />
+                <h4 className="text-sm font-bold text-white">
+                  {roomData?.roomId ? 'Room Credentials Scheduled' : 'No Room Credentials Configured Yet'}
+                </h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  {roomData?.roomId
+                    ? `Current Room ID is configured as "${roomData.roomId}". Verified squads can access it 5 minutes prior to kickoff.`
+                    : 'As the tournament organizer, please enter the custom in-game Room ID and Password so approved teams can join on time.'}
+                </p>
+                <button
+                  onClick={handleOpenRoomModal}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs shadow-lg shadow-yellow-500/30 transition"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>{roomData?.roomId ? 'Update Room ID & Pass' : '+ Add In-Game Room ID & Pass'}</span>
+                </button>
               </div>
             ) : (
               <div className="text-center py-6 space-y-2">
@@ -841,6 +966,121 @@ export const TournamentDetailPage = () => {
               >
                 {registerSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Submit Squad Registration
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* Organizer Room Credentials Add & Update Modal */}
+      <Modal
+        isOpen={roomModalOpen}
+        onClose={() => setRoomModalOpen(false)}
+        title={roomData?.roomId ? `Update Room ID & Password • ${tournament?.name || ''}` : `Add Room ID & Password • ${tournament?.name || ''}`}
+      >
+        {modalSuccess ? (
+          <div className="text-center py-8 space-y-3">
+            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
+            <h4 className="text-base font-bold text-white">Room Credentials Saved!</h4>
+            <p className="text-xs text-slate-400">
+              Room ID and Password updated successfully. Verified squads can unlock them 5 minutes before scheduled match start.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSaveRoomModal} className="space-y-4">
+            <p className="text-xs text-slate-400">
+              Enter the custom game Room ID and Password created from {tournament?.game || 'the game'}. Credentials are encrypted and revealed only to approved participants.
+            </p>
+
+            {modalError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  In-Game Custom Room ID <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={modalRoomId}
+                  onChange={(e) => setModalRoomId(e.target.value)}
+                  placeholder="e.g. 7482910"
+                  className="w-full px-3 py-2 bg-[#0c0e18] border border-slate-700 rounded-xl text-xs text-white font-mono font-bold focus:outline-none focus:border-yellow-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  In-Game Room Password <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={modalShowPassword ? 'text' : 'password'}
+                    required
+                    value={modalPassword}
+                    onChange={(e) => setModalPassword(e.target.value)}
+                    placeholder="e.g. BATTLE#2026"
+                    className="w-full pl-3 pr-9 py-2 bg-[#0c0e18] border border-slate-700 rounded-xl text-xs text-white font-mono font-bold focus:outline-none focus:border-yellow-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setModalShowPassword(!modalShowPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                  >
+                    {modalShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Release Timestamp (Unlocks 5 Minutes Before Start)
+              </label>
+              <input
+                type="datetime-local"
+                value={modalReleaseTime}
+                onChange={(e) => setModalReleaseTime(e.target.value)}
+                className="w-full px-3 py-2 bg-[#0c0e18] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-500"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Leave default or select a specific time for automated unlock.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Lobby Instructions & Slot Allocations
+              </label>
+              <textarea
+                rows={3}
+                value={modalInstructions}
+                onChange={(e) => setModalInstructions(e.target.value)}
+                placeholder="e.g. Team Alpha Slot 1, Team Beta Slot 2. Mobile devices only. Emulators strictly prohibited."
+                className="w-full px-3 py-2 bg-[#0c0e18] border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-500"
+              />
+            </div>
+
+            <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setRoomModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={modalSaving}
+                className="px-6 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-black text-xs font-bold transition shadow-lg shadow-yellow-500/25 flex items-center gap-1.5"
+              >
+                {modalSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {roomData?.roomId ? 'Update Room ID & Pass' : 'Publish Room ID & Pass'}
               </button>
             </div>
           </form>

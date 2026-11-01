@@ -191,8 +191,8 @@ export const Navbar = () => {
               </Link>
             )}
 
-            {/* Quick Action Button for Organizer */}
-            {user?.role === 'organizer' && (
+            {/* Quick Action Button for Organizer & Admin */}
+            {(user?.role === 'organizer' || user?.role === 'admin') && (
               <Link
                 to="/organizer/tournaments/create"
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium text-xs shadow-md shadow-cyan-600/20 transition"
@@ -382,6 +382,15 @@ export const Navbar = () => {
 
                       {user.role === 'admin' && (
                         <>
+                          <Link
+                            to="/organizer/tournaments/create"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-300 hover:text-white hover:bg-slate-800 transition"
+                          >
+                            <PlusCircle className="w-4 h-4 text-cyan-400" />
+                            Host Tournament
+                          </Link>
+
                           <Link
                             to="/admin"
                             onClick={() => setUserDropdownOpen(false)}
@@ -579,6 +588,13 @@ export const Navbar = () => {
               <div className="px-3 py-1 text-[11px] font-bold text-amber-400 uppercase tracking-wider">
                 Administrator Menu
               </div>
+              <Link
+                to="/organizer/tournaments/create"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-sm text-white bg-cyan-600/40 border border-cyan-500/30 font-semibold"
+              >
+                + Host Tournament
+              </Link>
               <Link
                 to="/admin"
                 onClick={() => setMobileMenuOpen(false)}

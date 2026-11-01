@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { tournamentsAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { TournamentCard } from '../../components/tournaments/TournamentCard';
 import { 
   Trophy, 
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 export const HomePage = () => {
+  const { user } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,13 +76,38 @@ export const HomePage = () => {
               <span>Explore Tournaments</span>
             </Link>
 
-            <Link
-              to="/organizer/tournaments/create"
-              className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#151928] hover:bg-[#1c2237] text-white border border-slate-700/80 font-bold text-sm hover:border-cyan-500/40 transition duration-200"
-            >
-              <Zap className="w-4 h-4 text-cyan-400" />
-              <span>Host a Tournament</span>
-            </Link>
+            {/* Host Tournament Option: ONLY for Organizer and Admin */}
+            {(user?.role === 'organizer' || user?.role === 'admin') && (
+              <Link
+                to="/organizer/tournaments/create"
+                className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-xl shadow-cyan-600/30 transition duration-200"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Host a Tournament</span>
+              </Link>
+            )}
+
+            {/* If regular Player, show Squad Manager */}
+            {user?.role === 'player' && (
+              <Link
+                to="/teams/create"
+                className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#151928] hover:bg-[#1c2237] text-white border border-slate-700/80 font-bold text-sm hover:border-purple-500/40 transition duration-200"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>Create Squad</span>
+              </Link>
+            )}
+
+            {/* If Guest, show Join as Player */}
+            {!user && (
+              <Link
+                to="/register"
+                className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#151928] hover:bg-[#1c2237] text-white border border-slate-700/80 font-bold text-sm hover:border-purple-500/40 transition duration-200"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>Join as Player</span>
+              </Link>
+            )}
           </div>
 
           {/* Quick Metrics Counter */}

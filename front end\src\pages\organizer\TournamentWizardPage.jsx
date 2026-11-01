@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { tournamentsAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Check, 
   ArrowLeft, 
@@ -33,6 +34,7 @@ const SUPPORTED_GAMES = [
 
 export const TournamentWizardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -156,6 +158,36 @@ export const TournamentWizardPage = () => {
       setSubmitting(false);
     }
   };
+
+  if (user && user.role !== 'organizer' && user.role !== 'admin') {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-20 text-center">
+        <div className="bg-[#121624] border border-amber-500/40 rounded-2xl p-8 shadow-2xl space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Organizer Authority Required</h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Tournament hosting is exclusively available to verified <strong>Tournament Organizers</strong> and <strong>Administrators</strong>. Regular player accounts cannot host tournaments.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/tournaments"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition"
+            >
+              Browse Tournaments
+            </Link>
+            <Link
+              to="/dashboard"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs transition"
+            >
+              Back to Player Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
