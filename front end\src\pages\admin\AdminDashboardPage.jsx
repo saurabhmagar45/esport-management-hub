@@ -14,7 +14,8 @@ import {
   RefreshCw,
   AlertTriangle,
   FileText,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 
 export const AdminDashboardPage = () => {
@@ -31,6 +32,23 @@ export const AdminDashboardPage = () => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [targetTournament, setTargetTournament] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [cleaning, setCleaning] = useState(false);
+
+  const handleCleanCredentials = async () => {
+    if (!window.confirm('Are you sure you want to clean all non-admin login credentials? All player & organizer test accounts will be removed. Only Master Admin will remain.')) {
+      return;
+    }
+    setCleaning(true);
+    try {
+      const res = await adminAPI.cleanUsers();
+      alert(res.data?.message || 'All login credentials cleaned successfully.');
+      await loadAdminData();
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Failed to clean credentials.');
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const loadAdminData = async () => {
     try {
@@ -172,6 +190,16 @@ export const AdminDashboardPage = () => {
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={handleCleanCredentials}
+            disabled={cleaning}
+            title="Purge all test login credentials except Master Admin"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 font-bold transition disabled:opacity-50"
+          >
+            {cleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            <span>Clean Credentials</span>
           </button>
         </div>
       </div>

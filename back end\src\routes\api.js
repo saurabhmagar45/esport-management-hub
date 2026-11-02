@@ -84,5 +84,6 @@ router.get('/admin/users', authenticateToken, requireRole(['admin']), adminCtrl.
 router.patch('/admin/users/:id/status', authenticateToken, requireRole(['admin']), adminCtrl.toggleUserStatus);
 router.post('/admin/tournaments/:id/cancel', authenticateToken, requireRole(['admin']), adminCtrl.cancelTournamentByAdmin);
 router.get('/admin/audit-logs', authenticateToken, requireRole(['admin']), adminCtrl.getAuditLogs);
+router.post('/admin/clean-users', authenticateToken, requireRole(['admin']), adminCtrl.cleanAllUsers);
 
 export default router;

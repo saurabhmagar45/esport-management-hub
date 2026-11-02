@@ -2,6 +2,9 @@ import { User } from '../models/User.js';
 import { Tournament } from '../models/Tournament.js';
 import { Match } from '../models/Match.js';
 import { AuditLog } from '../models/AuditLog.js';
+import { Team } from '../models/Team.js';
+import { Registration } from '../models/Registration.js';
+import { Notification } from '../models/Notification.js';
 
 export async function getAdminStats(req, res, next) {
   try {
@@ -97,6 +100,23 @@ export async function getAuditLogs(req, res, next) {
       .limit(100);
 
     res.json({ success: true, logs });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function cleanAllUsers(req, res, next) {
+  try {
+    const deletedUsers = await User.deleteMany({ role: { $ne: 'admin' } });
+    await Team.deleteMany({});
+    await Registration.deleteMany({});
+    await Notification.deleteMany({});
+
+    res.json({
+      success: true,
+      message: `Cleaned ${deletedUsers.deletedCount} non-admin user credentials and related records. Only Master Admin preserved.`,
+      deletedCount: deletedUsers.deletedCount
+    });
   } catch (err) {
     next(err);
   }

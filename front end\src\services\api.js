@@ -107,7 +107,8 @@ export const adminAPI = {
   getUsers: () => apiClient.get('/admin/users'),
   toggleUserStatus: (id) => apiClient.patch(`/admin/users/${id}/status`),
   cancelTournament: (id, reason) => apiClient.post(`/admin/tournaments/${id}/cancel`, { reason }),
-  getAuditLogs: () => apiClient.get('/admin/audit-logs')
+  getAuditLogs: () => apiClient.get('/admin/audit-logs'),
+  cleanUsers: () => apiClient.post('/admin/clean-users')
 };
 
 export const disputesAPI = {
