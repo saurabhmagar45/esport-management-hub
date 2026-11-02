@@ -11,34 +11,29 @@ import { Payment } from '../models/Payment.js';
 import { AuditLog } from '../models/AuditLog.js';
 
 export async function seedDatabase() {
-  console.log('🧹 Purging all demo and mock datasets from database...');
+  try {
+    // Check if Single Master Admin already exists
+    const existingAdmin = await User.findOne({ email: 'admin@esporthub.gg' });
 
-  await Promise.all([
-    User.deleteMany({}),
-    Team.deleteMany({}),
-    Tournament.deleteMany({}),
-    Registration.deleteMany({}),
-    Match.deleteMany({}),
-    RoomDetails.deleteMany({}),
-    Notification.deleteMany({}),
-    Dispute.deleteMany({}),
-    Payment.deleteMany({}),
-    AuditLog.deleteMany({})
-  ]);
+    if (!existingAdmin) {
+      console.log('🌱 Seeding initial Master Admin account...');
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('password123', salt);
 
-  // Seed Single Master Admin ONLY
-  const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash('password123', salt);
+      const admin = await User.create({
+        name: 'Master Admin',
+        email: 'admin@esporthub.gg',
+        passwordHash,
+        role: 'admin',
+        avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
+        gameProfiles: {}
+      });
 
-  const admin = await User.create({
-    name: 'Master Admin',
-    email: 'admin@esporthub.gg',
-    passwordHash,
-    role: 'admin',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150',
-    gameProfiles: {}
-  });
-
-  console.log(`✅ Single Master Admin initialized: ${admin.email} (Password: password123)`);
-  console.log('✨ System initialized with ZERO demo data: ready for real players and organizers!');
+      console.log(`✅ Master Admin initialized: ${admin.email} (Password: password123)`);
+    } else {
+      console.log('✅ Master Admin account verified. Preserving existing users and database state.');
+    }
+  } catch (err) {
+    console.error('Error during initial seed check:', err.message);
+  }
 }
