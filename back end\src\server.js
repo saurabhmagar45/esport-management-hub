@@ -11,7 +11,7 @@ async function bootstrap() {
   try {
     await connectDB();
 
-    // Reset and seed single Master Admin
+    // Ensure Master Admin exists without purging registered data
     await seedDatabase();
 
     app.listen(PORT, () => {
