@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Trophy, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Trophy, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -41,12 +41,6 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillAdmin = () => {
-    setEmail('admin@esporthub.gg');
-    setPassword('password123');
-    setError('');
   };
 
   return (
@@ -127,26 +121,6 @@ export const LoginPage = () => {
             {!loading && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>
-
-        {/* Master Admin Fast Sign-in Access */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-            <span className="flex items-center gap-1 font-semibold text-amber-400">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Master Admin Access:
-            </span>
-            <button
-              type="button"
-              onClick={handleFillAdmin}
-              className="text-[11px] px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold transition"
-            >
-              Fill Admin Credentials
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-500">
-            admin@esporthub.gg • Master Control for platform tournaments, users, and disputes
-          </p>
-        </div>
 
         <div className="mt-6 text-center text-xs text-slate-400">
           Don't have an account?{' '}

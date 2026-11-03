@@ -99,17 +99,6 @@ export const LoginScreen = ({ navigation }) => {
             loading={loading}
             style={styles.loginBtn}
           />
-
-          {/* Quick Demo Credentials Fill Button */}
-          <TouchableOpacity
-            style={styles.demoFillBtn}
-            onPress={() => {
-              setEmail('admin@esporthub.gg');
-              setPassword('password123');
-            }}
-          >
-            <Text style={styles.demoFillText}>Fill Master Admin Demo Credentials</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Sign Up Navigation Footer */}
@@ -187,19 +176,6 @@ const styles = StyleSheet.create({
   },
   loginBtn: {
     marginBottom: 16,
-  },
-  demoFillBtn: {
-    padding: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
-  },
-  demoFillText: {
-    color: COLORS.primaryLight,
-    fontSize: 11,
-    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
