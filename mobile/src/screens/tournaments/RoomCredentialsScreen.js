@@ -40,7 +40,9 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
   const [editRoomId, setEditRoomId] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editInstructions, setEditInstructions] = useState('');
+  const [editReleaseTiming, setEditReleaseTiming] = useState('match_time');
   const [saving, setSaving] = useState(false);
+  const [countdown, setCountdown] = useState('');
 
   const isOrganizer = Boolean(
     user && (
@@ -70,7 +72,41 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchCredentials();
+    const interval = setInterval(() => {
+      tournamentsAPI.getRoomDetails(tournament._id || tournament.id)
+        .then(res => {
+          if (res.data && res.data.success) {
+            setRoomData(res.data.room || res.data);
+            setError(null);
+          }
+        }).catch(() => {});
+    }, 12000);
+    return () => clearInterval(interval);
   }, [tournament]);
+
+  useEffect(() => {
+    if (!roomData?.releaseAt || roomData?.isReleased) {
+      setCountdown('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const target = new Date(roomData.releaseAt).getTime();
+      const diff = Math.max(0, Math.floor((target - Date.now()) / 1000));
+      if (diff <= 0) {
+        setCountdown('00:00');
+        fetchCredentials();
+      } else {
+        const mins = Math.floor(diff / 60);
+        const secs = diff % 60;
+        setCountdown(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+      }
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, [roomData?.releaseAt, roomData?.isReleased]);
 
   const handleOpenEdit = () => {
     setEditRoomId(roomData?.roomId || '');
@@ -91,6 +127,7 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
         roomId: editRoomId.trim(),
         password: editPassword.trim(),
         instructions: editInstructions.trim(),
+        releaseTiming: editReleaseTiming,
       };
       await tournamentsAPI.setRoomDetails(tournId, payload);
       setRoomData({
@@ -158,18 +195,31 @@ export const RoomCredentialsScreen = ({ route, navigation }) => {
             <ActivityIndicator size="large" color={COLORS.secondary} />
             <Text style={styles.loadingText}>Decrypting verified room credentials...</Text>
           </View>
-        ) : error ? (
+        ) : error || (roomData && !roomData.isReleased) ? (
           <View style={styles.lockedCard}>
             <View style={styles.lockIconBadge}>
               <Lock size={32} color={COLORS.accent} />
             </View>
             <Text style={styles.lockedTitle}>Room Key Locked</Text>
-            <Text style={styles.lockedDesc}>{error}</Text>
+            <Text style={styles.lockedDesc}>
+              {roomData?.message || error || 'Credentials unlock automatically at match time for verified squads.'}
+            </Text>
+
+            {!!countdown && (
+              <View style={styles.countdownBox}>
+                <Clock size={18} color={COLORS.accent} />
+                <Text style={styles.countdownVal}>Unlocks in: {countdown}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.refreshBtn} onPress={fetchCredentials}>
+              <Text style={styles.refreshBtnText}>🔄 Refresh for Organizer Updates</Text>
+            </TouchableOpacity>
 
             <View style={styles.ruleNotice}>
               <Clock size={16} color={COLORS.secondary} />
               <Text style={styles.ruleNoticeText}>
-                Credentials unlock automatically 5 minutes before scheduled match start for all verified squad participants.
+                Credentials unlock automatically at scheduled match time. Real-time updates sync instantly.
               </Text>
             </View>
           </View>
@@ -401,7 +451,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  countdownBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 14,
+  },
+  countdownVal: {
+    color: COLORS.accent,
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  refreshBtn: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  refreshBtnText: {
+    color: COLORS.primaryLight,
+    fontSize: 12,
+    fontWeight: '700',
   },
   ruleNotice: {
     flexDirection: 'row',
