@@ -453,8 +453,8 @@ export const TournamentDetailPage = () => {
       {/* Main Content Body */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* ROOM KEY 5-MINUTE VAULT CARD (If Approved Player or Organizer) */}
-        {(isApproved || isOrganizer) && (
+        {/* ROOM KEY 5-MINUTE VAULT CARD (If Registered Player or Organizer) */}
+        {(isApproved || isPending || isOrganizer) && (
           <div className="bg-[#121624] border border-purple-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl -z-10" />
 
@@ -564,7 +564,7 @@ export const TournamentDetailPage = () => {
                 <Lock className="w-10 h-10 text-amber-400 mx-auto animate-pulse" />
                 <h4 className="text-sm font-bold text-white">Room Credentials Time-Locked</h4>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  {roomError || 'Room credentials will unlock automatically 5 minutes prior to match start. Stay tuned!'}
+                  {roomData?.message || roomError || 'Room credentials will unlock automatically 5 minutes prior to match start. Stay tuned!'}
                 </p>
               </div>
             )}

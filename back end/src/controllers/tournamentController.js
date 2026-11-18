@@ -310,17 +310,20 @@ export async function getTournamentRoom(req, res, next) {
       });
     }
 
-    // Check if player has an approved registration in this tournament
-    const approvedReg = await Registration.findOne({
+    // Check if player has an active registration in this tournament (approved or pending)
+    const validReg = await Registration.findOne({
       tournament: tournament._id,
-      submittedBy: req.user._id,
-      status: 'approved'
+      $or: [
+        { submittedBy: req.user._id },
+        { 'roster.email': req.user.email?.toLowerCase() }
+      ],
+      status: { $in: ['approved', 'pending'] }
     });
 
-    if (!approvedReg) {
+    if (!validReg) {
       return res.status(403).json({
         success: false,
-        message: 'Forbidden: Room credentials are only visible to approved registered squads.'
+        message: 'Forbidden: Room credentials are only visible to registered tournament participants.'
       });
     }
 
@@ -329,11 +332,12 @@ export async function getTournamentRoom(req, res, next) {
     const releaseTime = new Date(tournament.roomInfo.releaseAt);
 
     if (now < releaseTime) {
-      return res.status(403).json({
-        success: false,
-        message: `Room credentials will unlock 5 minutes prior to match start (${releaseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`,
+      return res.json({
+        success: true,
+        isReleased: false,
         releaseAt: tournament.roomInfo.releaseAt,
-        isReleased: false
+        instructions: tournament.roomInfo.instructions,
+        message: `Room credentials will unlock 5 minutes prior to match start (${releaseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`
       });
     }
 
