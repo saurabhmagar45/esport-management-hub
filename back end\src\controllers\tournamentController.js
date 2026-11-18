@@ -1,6 +1,7 @@
 import { Tournament } from '../models/Tournament.js';
 import { Registration } from '../models/Registration.js';
 import { Match } from '../models/Match.js';
+import { Notification } from '../models/Notification.js';
 import { encryptPassword, decryptPassword } from '../utils/crypto.js';
 
 export async function getTournaments(req, res, next) {
@@ -236,7 +237,7 @@ export async function addAnnouncement(req, res, next) {
 export async function setTournamentRoom(req, res, next) {
   try {
     const { id } = req.params;
-    const { roomId, password, releaseAt, instructions } = req.body;
+    const { roomId, password, releaseAt, instructions, releaseTiming } = req.body;
 
     if (!roomId || !password) {
       return res.status(400).json({ success: false, message: 'Room ID and Password are required.' });
@@ -251,10 +252,18 @@ export async function setTournamentRoom(req, res, next) {
 
     const { ciphertext, iv } = encryptPassword(password);
 
-    // Default release time to 5 minutes before tournament kickoff if not specified
-    const calculatedReleaseAt = releaseAt
-      ? new Date(releaseAt)
-      : new Date(new Date(tournament.startDate).getTime() - 5 * 60 * 1000);
+    // Calculate release time based on organizer preference:
+    // 1) 'immediate': unlock right now
+    // 2) explicit 'releaseAt': use custom time
+    // 3) default: unlock 5 minutes before match start
+    let calculatedReleaseAt;
+    if (releaseTiming === 'immediate' || releaseAt === 'now') {
+      calculatedReleaseAt = new Date();
+    } else if (releaseAt) {
+      calculatedReleaseAt = new Date(releaseAt);
+    } else {
+      calculatedReleaseAt = new Date(new Date(tournament.startDate).getTime() - 5 * 60 * 1000);
+    }
 
     tournament.roomInfo = {
       roomId,
@@ -267,9 +276,32 @@ export async function setTournamentRoom(req, res, next) {
 
     await tournament.save();
 
+    // Notify all registered participants of the room update
+    try {
+      const registrations = await Registration.find({
+        tournament: tournament._id,
+        status: { $in: ['approved', 'pending'] }
+      });
+
+      const uniqueRecipients = [...new Set(registrations.map(r => r.submittedBy.toString()))];
+      const notifications = uniqueRecipients.map(recipientId => ({
+        recipient: recipientId,
+        type: 'room_credentials_updated',
+        title: 'Match Room Credentials Updated! 🔑',
+        message: `Organizer has updated Room ID & Password for "${tournament.name}". Visible on the tournament page at match time!`,
+        link: `/tournaments/${tournament._id}`
+      }));
+
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send room update notifications:', notifErr.message);
+    }
+
     res.json({
       success: true,
-      message: 'Room credentials securely encrypted and scheduled for release 5 minutes before match start.',
+      message: 'Room credentials securely encrypted and saved. Unlocks for players at scheduled match time.',
       roomId: tournament.roomInfo.roomId,
       releaseAt: tournament.roomInfo.releaseAt,
       instructions: tournament.roomInfo.instructions
@@ -306,34 +338,42 @@ export async function getTournamentRoom(req, res, next) {
         password: plaintext,
         instructions: tournament.roomInfo.instructions,
         releaseAt: tournament.roomInfo.releaseAt,
+        matchTime: tournament.startDate,
+        serverTime: new Date(),
         isReleased: true
       });
     }
 
-    // Check if player has an approved registration in this tournament
-    const approvedReg = await Registration.findOne({
+    // Check if player has an active registration in this tournament (approved or pending)
+    const validReg = await Registration.findOne({
       tournament: tournament._id,
-      submittedBy: req.user._id,
-      status: 'approved'
+      $or: [
+        { submittedBy: req.user._id },
+        { 'roster.email': req.user.email?.toLowerCase() }
+      ],
+      status: { $in: ['approved', 'pending'] }
     });
 
-    if (!approvedReg) {
+    if (!validReg) {
       return res.status(403).json({
         success: false,
-        message: 'Forbidden: Room credentials are only visible to approved registered squads.'
+        message: 'Forbidden: Room credentials are only visible to registered tournament participants.'
       });
     }
 
-    // Check 5-minute timed release
+    // Check timed release (match time)
     const now = new Date();
     const releaseTime = new Date(tournament.roomInfo.releaseAt);
 
     if (now < releaseTime) {
-      return res.status(403).json({
-        success: false,
-        message: `Room credentials will unlock 5 minutes prior to match start (${releaseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`,
+      return res.json({
+        success: true,
+        isReleased: false,
         releaseAt: tournament.roomInfo.releaseAt,
-        isReleased: false
+        matchTime: tournament.startDate,
+        serverTime: now,
+        instructions: tournament.roomInfo.instructions,
+        message: `Room credentials will unlock automatically at match time (${releaseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`
       });
     }
 
@@ -346,6 +386,8 @@ export async function getTournamentRoom(req, res, next) {
       password: plaintext,
       instructions: tournament.roomInfo.instructions,
       releaseAt: tournament.roomInfo.releaseAt,
+      matchTime: tournament.startDate,
+      serverTime: now,
       isReleased: true
     });
   } catch (err) {
