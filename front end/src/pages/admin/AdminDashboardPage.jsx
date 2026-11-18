@@ -4,6 +4,7 @@ import { MOCK_USERS, MOCK_TOURNAMENTS, MOCK_AUDIT_LOGS } from '../../data/mockDa
 import { adminAPI, tournamentsAPI, disputesAPI } from '../../services/api';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Modal } from '../../components/common/Modal';
+import { ProfilePictureModal } from '../../components/common/ProfilePictureModal';
 import { 
   Shield, 
   Users, 
@@ -15,7 +16,8 @@ import {
   AlertTriangle,
   FileText,
   Check,
-  Trash2
+  Trash2,
+  Camera
 } from 'lucide-react';
 
 export const AdminDashboardPage = () => {
@@ -33,6 +35,7 @@ export const AdminDashboardPage = () => {
   const [targetTournament, setTargetTournament] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cleaning, setCleaning] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const handleCleanCredentials = async () => {
     if (!window.confirm('Are you sure you want to clean all non-admin login credentials? All player & organizer test accounts will be removed. Only Master Admin will remain.')) {
@@ -138,17 +141,43 @@ export const AdminDashboardPage = () => {
       
       {/* Header Banner */}
       <div className="bg-[#121624] border border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono font-bold text-amber-400 uppercase flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" />
-              Administrative Command Center
-            </span>
+        <div className="flex items-center gap-4">
+          <div 
+            className="relative group cursor-pointer shrink-0" 
+            onClick={() => setProfileModalOpen(true)}
+            title="Click to set profile picture"
+          >
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500/40 group-hover:border-amber-400 transition shadow-lg"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center text-amber-400 font-black text-xl group-hover:border-amber-400 transition">
+                {user?.name?.[0]?.toUpperCase() || 'A'}
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 p-1 bg-amber-500 rounded-lg text-black shadow">
+              <Camera className="w-3 h-3" />
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">Platform Oversight & Governance</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Moderate player accounts, audit operational changes, and oversee competitive tournaments.
-          </p>
+
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-mono font-bold text-amber-400 uppercase flex items-center gap-1">
+                <Shield className="w-3.5 h-3.5" />
+                Administrative Command Center
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">{user?.name || 'Master Admin'}</h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Moderate player accounts, audit operational changes, and oversee competitive tournaments.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center flex-wrap gap-2 bg-[#0c0e18] p-1.5 rounded-xl border border-slate-800 text-xs">
@@ -443,6 +472,12 @@ export const AdminDashboardPage = () => {
           </div>
         </Modal>
       )}
+
+      {/* Profile Picture Modal */}
+      <ProfilePictureModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
 
     </div>
   );

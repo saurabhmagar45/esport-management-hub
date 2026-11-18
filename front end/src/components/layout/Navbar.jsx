@@ -20,8 +20,10 @@ import {
   UserCheck,
   AlertTriangle,
   FolderKanban,
-  UserCog
+  UserCog,
+  Camera
 } from 'lucide-react';
+import { ProfilePictureModal } from '../common/ProfilePictureModal';
 
 export const Navbar = () => {
   const { user, logout, switchRole } = useAuth();
@@ -29,6 +31,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [showDemoRolePicker, setShowDemoRolePicker] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -323,6 +326,18 @@ export const Navbar = () => {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email}</p>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          setProfileModalOpen(true);
+                        }}
+                        className="w-full mt-2.5 py-1.5 px-2.5 rounded-lg bg-purple-600/10 hover:bg-purple-600/25 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center justify-center gap-1.5 transition"
+                      >
+                        <Camera className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Set Profile Picture</span>
+                      </button>
                     </div>
 
                     {/* Role-Specific Navigation Menu Items */}
@@ -637,6 +652,12 @@ export const Navbar = () => {
 
         </div>
       )}
+
+      {/* Global Set Profile Picture Modal */}
+      <ProfilePictureModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
     </nav>
   );
 };

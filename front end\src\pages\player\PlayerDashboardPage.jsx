@@ -12,11 +12,14 @@ import {
   KeyRound, 
   ChevronRight, 
   Plus,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
+import { ProfilePictureModal } from '../../components/common/ProfilePictureModal';
 
 export const PlayerDashboardPage = () => {
   const { user } = useAuth();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const [myTeam, setMyTeam] = useState(null);
   const [registrations, setRegistrations] = useState([]);
@@ -53,11 +56,23 @@ export const PlayerDashboardPage = () => {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-purple-950/50 via-[#121624] to-[#121624] border border-purple-500/20 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
         <div className="flex items-center gap-4">
-          <img
-            src={user?.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
-            alt=""
-            className="w-16 h-16 rounded-2xl border-2 border-purple-500/50 object-cover shadow-lg shadow-purple-900/30"
-          />
+          <div 
+            className="relative group cursor-pointer"
+            onClick={() => setProfileModalOpen(true)}
+            title="Click to change profile picture"
+          >
+            <img
+              src={user?.avatar || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150'}
+              alt={user?.name}
+              className="w-16 h-16 rounded-2xl border-2 border-purple-500/50 object-cover shadow-lg shadow-purple-900/30 group-hover:opacity-85 transition"
+            />
+            <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-purple-600 text-white shadow border border-[#121624]">
+              <Camera className="w-3 h-3" />
+            </div>
+          </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider">
@@ -241,6 +256,11 @@ export const PlayerDashboardPage = () => {
 
       </div>
 
+      {/* Set Profile Picture Modal */}
+      <ProfilePictureModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
     </div>
   );
 };
